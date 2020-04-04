@@ -4,6 +4,7 @@ import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
+import com.badlogic.gdx.audio.Music;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
@@ -28,6 +29,8 @@ public class MenuScreen implements Screen {
     private TextButton exitBtn;
     FrogGame game;
     private Label titleLabel;
+    private Music titleMusic;
+    private Music playHitMusic;
 
     // constructor to keep a reference to the main Game class
     public MenuScreen(FrogGame game) {
@@ -38,29 +41,35 @@ public class MenuScreen implements Screen {
         batch = new SpriteBatch();
         skin = new Skin(Gdx.files.internal("flat-earth/skin/flat-earth-ui.json"));
         stage = new Stage();
+        titleMusic = Gdx.audio.newMusic(Gdx.files.internal("title.wav"));
+        titleMusic.setLooping(false);
+        titleMusic.play();
+        titleMusic.setVolume(0.5f);
+        playHitMusic = Gdx.audio.newMusic(Gdx.files.internal("playhit.wav"));
+        playHitMusic.setLooping(false);
+        playHitMusic.setVolume(0.5f);
 
         Texture titleTexture = new Texture(Gdx.files.internal("title.png"));
         Image titleImage = new Image(titleTexture);
+        Texture subtitleTexture = new Texture(Gdx.files.internal("subtitle.png"));
+        Image subtitleImage = new Image(subtitleTexture);
 
-        titleLabel = new Label("Frog Dash", skin);
+        titleLabel = new Label("Funky Frog", skin);
         titleLabel.setWidth(150f);
         titleLabel.setHeight(50f);
         titleLabel.setAlignment(Align.center);
         titleLabel.setAlignment(Align.top);
         titleLabel.setPosition(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
-//        stage.addActor(titleLabel);
 
         playBtn = new TextButton("Play", skin, "default");
         playBtn.setWidth(150f);
         playBtn.setHeight(50f);
         playBtn.setPosition(Gdx.graphics.getWidth() / 2 - 75f, Gdx.graphics.getHeight() / 2 - 75f);
-//        stage.addActor(playBtn);
 
         exitBtn = new TextButton("Exit", skin, "default");
         exitBtn.setWidth(150f);
         exitBtn.setHeight(50f);
         exitBtn.setPosition(Gdx.graphics.getWidth() / 2 - 75f , Gdx.graphics.getHeight() / 2 - 150f);
-//        stage.addActor(exitBtn);
 
         Table table = new Table();
         table.setFillParent(true);
@@ -83,12 +92,19 @@ public class MenuScreen implements Screen {
         batch.end();
 
         // Handle Button Commands
-        if (playBtn.isPressed()) game.setScreen(FrogGame.gameScreen);
+        if (playBtn.isPressed()) {
+            game.setScreen(FrogGame.gameScreen);
+            titleMusic.stop();
+            playHitMusic.play();
+        }
+
         if (exitBtn.isPressed()) Gdx.app.exit();
     }
 
     @Override
-    public void dispose() { }
+    public void dispose() {
+        titleMusic.dispose();
+    }
     @Override
     public void resize(int width, int height) { }
     @Override
