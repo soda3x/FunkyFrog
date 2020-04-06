@@ -16,6 +16,7 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
@@ -31,30 +32,27 @@ public class GameScreen implements Screen {
     FrogGame game;
 
     private OrthographicCamera camera;
-
     private SpriteBatch batch;
     private TextButton pauseBtn;
     private Skin skin;
     private Stage stage;
-
     private float stateTime;
-
     private GameState gameState;
     private Music bgMusic;
-
     private TiledMap streetMap;
     private TiledMapRenderer tiledMapRenderer;
-
     private Frog frog;
+    private Car[][] cars;
+    private static final int CARS_PER_LANE = 3;
+    private static final int NUMBER_OF_LANES = 8;
+    private static final int CAR_MIN_SPEED = 96;
+    private static final int CAR_SPEED_MOD = 12;
 
     // constructor to keep a reference to the main Game class
     public GameScreen(FrogGame game) {
         this.game = game;
-        this.frog = new Frog();
-
     }
     public void create() {
-
         bgMusic = Gdx.audio.newMusic(Gdx.files.internal("level1.wav"));
         bgMusic.setLooping(true);
         bgMusic.play();
@@ -66,7 +64,20 @@ public class GameScreen implements Screen {
         camera = new OrthographicCamera();
         camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        frog.create();
+        // Create frog
+        this.frog = new Frog(280, 0);
+        // Create cars
+        this.cars = new Car[NUMBER_OF_LANES][CARS_PER_LANE];
+        for (int i = 0; i < NUMBER_OF_LANES; ++i) {
+            for (int j = 0; j < CARS_PER_LANE; ++j) {
+                // TODO: Check this
+                if (i % 2 == 0) {
+                    cars[i][j] = new Car(Travelling.EAST);
+                } else {
+                    cars[i][j] = new Car(Travelling.WEST);
+                }
+            }
+        }
 
         stateTime = 0.0f;
 
@@ -87,14 +98,13 @@ public class GameScreen implements Screen {
         this.newGame();
     }
     public void render(float f) {
+        this.update();
+
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         stateTime += Gdx.graphics.getDeltaTime();
-
         camera.update();
-
-        this.update();
 
         tiledMapRenderer.setView(camera);
         tiledMapRenderer.render();
@@ -102,10 +112,16 @@ public class GameScreen implements Screen {
         batch.setProjectionMatrix(camera.combined);
 
         stage.draw();
-        batch.begin();
 
-        batch.draw(frog.render(stateTime), 270, 0);
-        batch.end();
+
+        frog.draw(batch, stateTime);
+
+        for (int i = 0; i < NUMBER_OF_LANES; ++i) {
+            for (int j = 0; j < CARS_PER_LANE; ++j) {
+                cars[i][j].draw(batch);
+            }
+        }
+
     }
     @Override
     public void dispose() {
@@ -133,25 +149,86 @@ public class GameScreen implements Screen {
     }
 
     private void update() {
+
         boolean checkTouch = Gdx.input.isTouched();
         int touchX = Gdx.input.getX();
         int touchY = Gdx.input.getY();
 
         switch (gameState) {
             case PLAYING:
-                int moveX = 0;
-                int moveY = 0;
-                // Check if screen is touched and then we can get where and move Funkmaster Frog to that x,y
-                if (checkTouch) {
-//                    game.setScreen(game.winScreen);
-//                    bgMusic.dispose();
+                // Move frog
+                if (Gdx.input.isTouched()) {
+
+                    // y is reversed so have to getHeight - y touch
+                    float maxDistanceThisFrame = this.frog.FROG_MOVEMENT_SPEED * Gdx.graphics.getDeltaTime();
+                    Vector2 playerToDestination = new Vector2(Gdx.input.getX(), (Gdx.graphics.getHeight() - Gdx.input.getY())).sub(this.frog.getX(), this.frog.getY());
+
+                    if (playerToDestination.len() <= maxDistanceThisFrame) {
+                        this.frog.setX(Gdx.input.getX());
+                        this.frog.setY(Gdx.input.getY());
+                    } else {
+                        playerToDestination.nor().scl(maxDistanceThisFrame);
+                        this.frog.setX(this.frog.getX() + playerToDestination.x);
+                        this.frog.setY(this.frog.getY() + playerToDestination.y);
+                    }
                 }
 
+                // Move cars
+                for (int i = 0; i < NUMBER_OF_LANES; ++i) {
+                    for (int j = 0; j < CARS_PER_LANE; ++j) {
+                        // TODO: Check this
+                        Car car = cars[i][j];
+                        float carX = car.getX();
+                        //TODO Check this
+                        if (car.getDirection() == Travelling.EAST) {
+                            carX = carX + (CAR_MIN_SPEED + i * CAR_SPEED_MOD) * Gdx.graphics.getDeltaTime();
+                            // If car moves off screen, wrap around
+                            if (carX >= Gdx.graphics.getWidth()) {
+                                carX = -car.getWidth();
+                            }
+
+                        } else {
+                            carX = carX - (CAR_MIN_SPEED + i * CAR_SPEED_MOD) * Gdx.graphics.getDeltaTime();
+                            if (carX <= -car.getWidth()) {
+                                carX = Gdx.graphics.getWidth();
+                            }
+                        }
+                        car.setX(carX);
+
+                        // lose game if car touches frog
+                        if (this.frog.getBoundingRectangle().overlaps(car.getBoundingRectangle())) {
+                            gameState = GameState.LOSE;
+                            Gdx.app.log("GameState: ", "LOSE");
+                        }
+
+                    }
+                }
+            case LOSE:
+            case WIN:
+                break;
         }
     }
 
 
     private void newGame() {
+        camera.position.x = Gdx.graphics.getWidth() / 2;
+        camera.position.y = Gdx.graphics.getHeight() / 2;
         gameState = GameState.PLAYING;
+        // to get lane width we divide the screen into equal sections, there are 8 lanes and a start and finish lane
+        // so we need to add 2 to factor those in
+        float laneWidth = Gdx.graphics.getHeight() / (NUMBER_OF_LANES + 2);
+        for (int i = 0; i < NUMBER_OF_LANES; ++i) {
+            for (int j = 0; j < CARS_PER_LANE; ++j) {
+                // Put car in center of lane, -8 pixel offset so that car is centered
+                cars[i][j].setY((i + 1) * laneWidth + (laneWidth - cars[i][j].getHeight()) - 8);
+                if (cars[i][j].getDirection() == Travelling.EAST) {
+                    // Space for 3 cars per lane
+                    cars[i][j].setX(j * 3 * cars[i][j].getWidth());
+                } else {
+                    // Wrap around if car moves off screen
+                    cars[i][j].setX(Gdx.graphics.getWidth() - j * 3 * cars[i][j].getWidth());
+                }
+            }
+        }
     }
 }
