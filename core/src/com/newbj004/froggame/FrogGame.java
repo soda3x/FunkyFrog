@@ -13,11 +13,13 @@ public class FrogGame extends Game implements ApplicationListener {
 	Texture img;
 	public static MenuScreen menuScreen;
 	public static GameScreen gameScreen;
+	public static WinScreen winScreen;
 	
 	@Override
 	public void create () {
 		menuScreen = new MenuScreen(this);
 		gameScreen = new GameScreen(this);
+		winScreen = new WinScreen(this);
 		setScreen(menuScreen);
 	}
 
