@@ -3,15 +3,19 @@ package com.newbj004.froggame;
 import com.badlogic.gdx.ApplicationListener;
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.Animation;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
@@ -19,6 +23,7 @@ import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
+import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Align;
@@ -36,17 +41,26 @@ public class GameScreen implements Screen {
     private TextButton pauseBtn;
     private Skin skin;
     private Stage stage;
+    private TextButton backToMenuBtn;
+
     private float stateTime;
     private GameState gameState;
+
     private Music bgMusic;
+    private Music loseMusicPart1;
+    private Music loseMusicPart2;
+
     private TiledMap streetMap;
     private TiledMapRenderer tiledMapRenderer;
     private Frog frog;
     private Car[][] cars;
+
     private static final int CARS_PER_LANE = 3;
     private static final int NUMBER_OF_LANES = 8;
     private static final int CAR_MIN_SPEED = 96;
     private static final int CAR_SPEED_MOD = 12;
+    private boolean showHitboxes = false;
+    private boolean gameOver = false;
 
     // constructor to keep a reference to the main Game class
     public GameScreen(FrogGame game) {
@@ -54,6 +68,7 @@ public class GameScreen implements Screen {
     }
     public void create() {
         bgMusic = Gdx.audio.newMusic(Gdx.files.internal("level1.wav"));
+        loseMusicPart1 = Gdx.audio.newMusic(Gdx.files.internal("lose1.wav"));
         bgMusic.setLooping(true);
         bgMusic.play();
         bgMusic.setVolume(0.5f);
@@ -94,11 +109,13 @@ public class GameScreen implements Screen {
         stage.addActor(pauseBtn);
 
         Gdx.input.setInputProcessor(stage);
-
+        stage.draw();
+        backToMenuBtn = new TextButton("Menu", skin, "default");
         this.newGame();
     }
     public void render(float f) {
         this.update();
+
 
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
@@ -113,8 +130,14 @@ public class GameScreen implements Screen {
 
         stage.draw();
 
+        if (!frog.isDead()) {
+            frog.draw(batch, stateTime);
+        } else {
+            frog.dead(batch);
+        }
 
-        frog.draw(batch, stateTime);
+
+
 
         for (int i = 0; i < NUMBER_OF_LANES; ++i) {
             for (int j = 0; j < CARS_PER_LANE; ++j) {
@@ -122,11 +145,50 @@ public class GameScreen implements Screen {
             }
         }
 
+        // DEBUG: Draw Hitboxes
+        if (showHitboxes) {
+            ShapeRenderer sr = new ShapeRenderer();
+            sr.begin(ShapeRenderer.ShapeType.Line);
+            sr.setColor(Color.RED);
+            sr.setAutoShapeType(true);
+            for (int i = 0; i < NUMBER_OF_LANES; ++i) {
+                for (int j = 0; j < CARS_PER_LANE; ++j) {
+                    sr.rect(cars[i][j].getBoundingRectangle().getX(), cars[i][j].getBoundingRectangle().getY(), cars[i][j].getBoundingRectangle().getWidth(), cars[i][j].getBoundingRectangle().getHeight());
+                }
+            }
+            sr.rect(this.frog.getBoundingRectangle().getX(), this.frog.getBoundingRectangle().getY(), this.frog.getBoundingRectangle().getWidth(), this.frog.getBoundingRectangle().getHeight());
+            sr.end();
+        }
+
+        if (gameOver) {
+            BitmapFont font = new BitmapFont(Gdx.files.internal("good_neighbors.fnt"),
+                    Gdx.files.internal("good_neighbors.png"), false);
+            Gdx.gl.glClearColor(0, 0, 0, 1);
+            Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+            batch.begin();
+            Texture grave = new Texture(Gdx.files.internal("grave.png"));
+            Image graveImage = new Image(grave);
+            graveImage.setWidth(50f);
+            graveImage.setHeight(50f);
+            graveImage.setX(Gdx.graphics.getWidth() / 2);
+            graveImage.setY((Gdx.graphics.getHeight() / 2) - 10);
+            graveImage.draw(batch, 1);
+
+            font.setColor(Color.WHITE);
+            font.draw(batch, "Game Over", (Gdx.graphics.getWidth() / 2) - 40, Gdx.graphics.getHeight() / 2);
+            backToMenuBtn.setWidth(200f);
+            backToMenuBtn.setHeight(35f);
+            backToMenuBtn.setPosition(Gdx.graphics.getWidth() / 2 - 100f, Gdx.graphics.getHeight() / 2 - 200f);
+            backToMenuBtn.draw(batch, 1);
+            batch.end();
+        }
     }
     @Override
     public void dispose() {
         streetMap.dispose();
         bgMusic.dispose();
+        loseMusicPart1.dispose();
+        loseMusicPart2.dispose();
     }
     @Override
     public void resize(int width, int height) { }
@@ -149,6 +211,15 @@ public class GameScreen implements Screen {
     }
 
     private void update() {
+
+        // DEBUG: Toggle hitboxes if H is pressed
+        if (Gdx.input.isKeyJustPressed(Input.Keys.H)) {
+            if (showHitboxes) {
+                showHitboxes = false;
+            } else {
+                showHitboxes = true;
+            }
+        }
 
         boolean checkTouch = Gdx.input.isTouched();
         int touchX = Gdx.input.getX();
@@ -197,13 +268,59 @@ public class GameScreen implements Screen {
 
                         // lose game if car touches frog
                         if (this.frog.getBoundingRectangle().overlaps(car.getBoundingRectangle())) {
+                            this.frog.killFrog();
                             gameState = GameState.LOSE;
                             Gdx.app.log("GameState: ", "LOSE");
+                            bgMusic.stop();
+                            loseMusicPart1.setVolume(0.5f);
+                            loseMusicPart1.setLooping(false);
+                            loseMusicPart1.play();
+                            if (loseMusicPart1.isPlaying()) {
+                                loseMusicPart2 = Gdx.audio.newMusic(Gdx.files.internal("lose2.wav"));
+                                loseMusicPart2.setVolume(0.5f);
+                                loseMusicPart2.setLooping(false);
+                            }
+                            loseMusicPart1.setOnCompletionListener(new Music.OnCompletionListener() {
+                                @Override
+                                public void onCompletion(Music music) {
+                                    loseMusicPart2.play();
+                                    gameOver = true;
+                                }
+                            }
+                            );
+                            if (backToMenuBtn.isPressed()) {
+                                game.setScreen(game.menuScreen);
+                            }
                         }
 
                     }
                 }
+                break;
             case LOSE:
+                bgMusic.dispose();
+                for (int i = 0; i < NUMBER_OF_LANES; ++i) {
+                    for (int j = 0; j < CARS_PER_LANE; ++j) {
+                        // TODO: Check this
+                        Car car = cars[i][j];
+                        float carX = car.getX();
+                        //TODO Check this
+                        if (car.getDirection() == Travelling.EAST) {
+                            carX = carX + (CAR_MIN_SPEED + i * CAR_SPEED_MOD) * Gdx.graphics.getDeltaTime();
+                            // If car moves off screen, wrap around
+                            if (carX >= Gdx.graphics.getWidth()) {
+                                carX = -car.getWidth();
+                            }
+
+                        } else {
+                            carX = carX - (CAR_MIN_SPEED + i * CAR_SPEED_MOD) * Gdx.graphics.getDeltaTime();
+                            if (carX <= -car.getWidth()) {
+                                carX = Gdx.graphics.getWidth();
+                            }
+                        }
+                        car.setX(carX);
+                    }
+                }
+                break;
             case WIN:
                 break;
         }

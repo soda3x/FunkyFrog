@@ -60,7 +60,7 @@ public class Car {
 
     public Rectangle getBoundingRectangle() {
         Sprite s = new Sprite(carTexture);
-        return s.getBoundingRectangle();
+        return new Rectangle(this.getX(), this.getY(), s.getWidth(), s.getHeight());
     }
 
 
