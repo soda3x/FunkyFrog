@@ -20,6 +20,7 @@ import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
@@ -61,6 +62,11 @@ public class GameScreen implements Screen {
     private static final int CAR_SPEED_MOD = 12;
     private boolean showHitboxes = false;
     private boolean gameOver = false;
+    private Rectangle winBounds;
+    private boolean isPaused;
+    private float height = 10;
+    private float pixelsPerUnit = Gdx.graphics.getHeight() / height;
+    private float width = Gdx.graphics.getWidth() / pixelsPerUnit;
 
     // constructor to keep a reference to the main Game class
     public GameScreen(FrogGame game) {
@@ -72,6 +78,13 @@ public class GameScreen implements Screen {
         bgMusic.setLooping(true);
         bgMusic.play();
         bgMusic.setVolume(0.5f);
+
+        // Set win area
+        winBounds = new Rectangle();
+        winBounds.setX(0);
+        winBounds.setY(Gdx.graphics.getHeight());
+        winBounds.setWidth(Gdx.graphics.getWidth());
+        winBounds.setHeight(-30);
 
         streetMap = new TmxMapLoader().load("street.tmx");
         tiledMapRenderer = new OrthogonalTiledMapRenderer(streetMap);
@@ -112,9 +125,24 @@ public class GameScreen implements Screen {
         stage.draw();
         backToMenuBtn = new TextButton("Menu", skin, "default");
         this.newGame();
+        isPaused = false;
     }
+
     public void render(float f) {
-        this.update();
+
+        if (!isPaused) {
+            this.update();
+        }
+
+        // Pause game logic
+        if(pauseBtn.isPressed()) {
+            if (isPaused) {
+                isPaused = false;
+                this.update();
+            } else {
+                isPaused = true;
+            }
+        }
 
 
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
@@ -136,14 +164,18 @@ public class GameScreen implements Screen {
             frog.dead(batch);
         }
 
-
-
-
         for (int i = 0; i < NUMBER_OF_LANES; ++i) {
             for (int j = 0; j < CARS_PER_LANE; ++j) {
                 cars[i][j].draw(batch);
             }
         }
+
+        ShapeRenderer wr = new ShapeRenderer();
+        wr.begin(ShapeRenderer.ShapeType.Line);
+        wr.setColor(Color.RED);
+        wr.setAutoShapeType(true);
+        wr.rect(winBounds.getX(), winBounds.getY(), winBounds.getWidth(), winBounds.getHeight());
+        wr.end();
 
         // DEBUG: Draw Hitboxes
         if (showHitboxes) {
@@ -180,20 +212,27 @@ public class GameScreen implements Screen {
             backToMenuBtn.setHeight(35f);
             backToMenuBtn.setPosition(Gdx.graphics.getWidth() / 2 - 100f, Gdx.graphics.getHeight() / 2 - 200f);
             backToMenuBtn.draw(batch, 1);
+            if (Gdx.input.isTouched()) {
+                game.setScreen(game.menuScreen);
+            }
             batch.end();
         }
     }
     @Override
     public void dispose() {
+
         streetMap.dispose();
         bgMusic.dispose();
         loseMusicPart1.dispose();
         loseMusicPart2.dispose();
     }
+
     @Override
     public void resize(int width, int height) { }
     @Override
-    public void pause() { }
+    public void pause() {
+
+    }
     @Override
     public void resume() { }
     @Override
@@ -203,11 +242,6 @@ public class GameScreen implements Screen {
     @Override
     public void hide() {
 
-    }
-
-    private int getRandomIntBetween(int min, int max) {
-        Random r = new Random();
-        return r.nextInt((max - min) + 1) + min;
     }
 
     private void update() {
@@ -220,10 +254,6 @@ public class GameScreen implements Screen {
                 showHitboxes = true;
             }
         }
-
-        boolean checkTouch = Gdx.input.isTouched();
-        int touchX = Gdx.input.getX();
-        int touchY = Gdx.input.getY();
 
         switch (gameState) {
             case PLAYING:
@@ -270,8 +300,8 @@ public class GameScreen implements Screen {
                         if (this.frog.getBoundingRectangle().overlaps(car.getBoundingRectangle())) {
                             this.frog.killFrog();
                             gameState = GameState.LOSE;
-                            Gdx.app.log("GameState: ", "LOSE");
                             bgMusic.stop();
+                            bgMusic.dispose();
                             loseMusicPart1.setVolume(0.5f);
                             loseMusicPart1.setLooping(false);
                             loseMusicPart1.play();
@@ -281,29 +311,31 @@ public class GameScreen implements Screen {
                                 loseMusicPart2.setLooping(false);
                             }
                             loseMusicPart1.setOnCompletionListener(new Music.OnCompletionListener() {
-                                @Override
-                                public void onCompletion(Music music) {
-                                    loseMusicPart2.play();
-                                    gameOver = true;
-                                }
-                            }
+                                                                       @Override
+                                                                       public void onCompletion(Music music) {
+                                                                           loseMusicPart2.play();
+                                                                           gameOver = true;
+                                                                       }
+                                                                   }
                             );
-                            if (backToMenuBtn.isPressed()) {
-                                game.setScreen(game.menuScreen);
-                            }
                         }
-
+                        // win game if frog touches win bounds
+                        if (this.frog.getBoundingRectangle().overlaps(winBounds)) {
+                            Gdx.app.log("GameState: ", "WIN");
+                            gameState = GameState.WIN;
+                            bgMusic.stop();
+                            bgMusic.dispose();
+                        }
                     }
+
                 }
                 break;
             case LOSE:
-                bgMusic.dispose();
+//                Gdx.app.log("GameState: ", "LOSE");
                 for (int i = 0; i < NUMBER_OF_LANES; ++i) {
                     for (int j = 0; j < CARS_PER_LANE; ++j) {
-                        // TODO: Check this
                         Car car = cars[i][j];
                         float carX = car.getX();
-                        //TODO Check this
                         if (car.getDirection() == Travelling.EAST) {
                             carX = carX + (CAR_MIN_SPEED + i * CAR_SPEED_MOD) * Gdx.graphics.getDeltaTime();
                             // If car moves off screen, wrap around
@@ -322,6 +354,8 @@ public class GameScreen implements Screen {
                 }
                 break;
             case WIN:
+                bgMusic.dispose();
+                game.setScreen(game.winScreen);
                 break;
         }
     }
