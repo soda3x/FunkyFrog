@@ -93,7 +93,9 @@ public class MenuScreen implements Screen {
 
         // Handle Button Commands
         if (playBtn.isPressed()) {
+            FrogGame.gameScreen = new GameScreen(this.game);
             game.setScreen(FrogGame.gameScreen);
+            FrogGame.gameScreen.newGame();
             titleMusic.stop();
             playHitMusic.play();
         }

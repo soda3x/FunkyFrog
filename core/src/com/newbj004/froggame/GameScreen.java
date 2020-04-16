@@ -28,6 +28,11 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Align;
+import com.badlogic.gdx.utils.viewport.ExtendViewport;
+import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
+import com.badlogic.gdx.utils.viewport.StretchViewport;
+import com.badlogic.gdx.utils.viewport.Viewport;
 
 import java.util.Random;
 
@@ -64,9 +69,7 @@ public class GameScreen implements Screen {
     private boolean gameOver = false;
     private Rectangle winBounds;
     private boolean isPaused;
-    private float height = 10;
-    private float pixelsPerUnit = Gdx.graphics.getHeight() / height;
-    private float width = Gdx.graphics.getWidth() / pixelsPerUnit;
+    private Viewport viewport;
 
     // constructor to keep a reference to the main Game class
     public GameScreen(FrogGame game) {
@@ -89,8 +92,10 @@ public class GameScreen implements Screen {
         streetMap = new TmxMapLoader().load("street.tmx");
         tiledMapRenderer = new OrthogonalTiledMapRenderer(streetMap);
 
-        camera = new OrthographicCamera();
+        camera = new OrthographicCamera(800, 480);
         camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+
+//        viewport = new FitViewport(800, 480, camera);
 
         // Create frog
         this.frog = new Frog(280, 0);
@@ -124,7 +129,7 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
         stage.draw();
         backToMenuBtn = new TextButton("Menu", skin, "default");
-        this.newGame();
+//        this.newGame();
         isPaused = false;
     }
 
@@ -156,6 +161,8 @@ public class GameScreen implements Screen {
 
         batch.setProjectionMatrix(camera.combined);
 
+
+
         stage.draw();
 
         if (!frog.isDead()) {
@@ -170,12 +177,12 @@ public class GameScreen implements Screen {
             }
         }
 
-        ShapeRenderer wr = new ShapeRenderer();
-        wr.begin(ShapeRenderer.ShapeType.Line);
-        wr.setColor(Color.RED);
-        wr.setAutoShapeType(true);
-        wr.rect(winBounds.getX(), winBounds.getY(), winBounds.getWidth(), winBounds.getHeight());
-        wr.end();
+//        ShapeRenderer wr = new ShapeRenderer();
+//        wr.begin(ShapeRenderer.ShapeType.Line);
+//        wr.setColor(Color.RED);
+//        wr.setAutoShapeType(true);
+//        wr.rect(winBounds.getX(), winBounds.getY(), winBounds.getWidth(), winBounds.getHeight());
+//        wr.end();
 
         // DEBUG: Draw Hitboxes
         if (showHitboxes) {
@@ -214,6 +221,7 @@ public class GameScreen implements Screen {
             backToMenuBtn.draw(batch, 1);
             if (Gdx.input.isTouched()) {
                 game.setScreen(game.menuScreen);
+                this.dispose();
             }
             batch.end();
         }
@@ -228,7 +236,10 @@ public class GameScreen implements Screen {
     }
 
     @Override
-    public void resize(int width, int height) { }
+    public void resize(int width, int height) {
+//        viewport.update(width, height, true);
+    }
+
     @Override
     public void pause() {
 
@@ -356,12 +367,14 @@ public class GameScreen implements Screen {
             case WIN:
                 bgMusic.dispose();
                 game.setScreen(game.winScreen);
+                this.dispose();
                 break;
         }
     }
 
 
-    private void newGame() {
+    public void newGame() {
+        gameOver = false;
         camera.position.x = Gdx.graphics.getWidth() / 2;
         camera.position.y = Gdx.graphics.getHeight() / 2;
         gameState = GameState.PLAYING;
