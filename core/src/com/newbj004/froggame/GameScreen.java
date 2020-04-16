@@ -1,7 +1,5 @@
 package com.newbj004.froggame;
 
-import com.badlogic.gdx.ApplicationListener;
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.Screen;
@@ -10,11 +8,8 @@ import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
-import com.badlogic.gdx.graphics.g2d.ParticleEffect;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapRenderer;
@@ -22,23 +17,15 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
-import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Align;
-import com.badlogic.gdx.utils.viewport.ExtendViewport;
-import com.badlogic.gdx.utils.viewport.FitViewport;
-import com.badlogic.gdx.utils.viewport.ScreenViewport;
-import com.badlogic.gdx.utils.viewport.StretchViewport;
-import com.badlogic.gdx.utils.viewport.Viewport;
-
-import java.util.Random;
 
 public class GameScreen implements Screen {
 
-    public enum GameState { PLAYING, WIN, LOSE };
+    public enum GameState { PLAYING, PAUSED,  WIN, LOSE };
 
     FrogGame game;
 
@@ -60,14 +47,14 @@ public class GameScreen implements Screen {
     private TiledMapRenderer tiledMapRenderer;
     private Frog frog;
     private Car[][] cars;
+    private Rectangle goal;
 
     private static final int CARS_PER_LANE = 3;
     private static final int NUMBER_OF_LANES = 8;
-    private static final int CAR_MIN_SPEED = 96;
-    private static final int CAR_SPEED_MOD = 12;
+    private static final int CAR_MIN_SPEED = 0;
+    private static final int CAR_SPEED_MOD = 0;
     private boolean showHitboxes = false;
     private boolean gameOver = false;
-    private Rectangle winBounds;
     private boolean isPaused;
 
     // constructor to keep a reference to the main Game class
@@ -84,14 +71,10 @@ public class GameScreen implements Screen {
         loseMusicPart1 = Gdx.audio.newMusic(Gdx.files.internal("lose1.wav"));
         bgMusic.setLooping(true);
         bgMusic.play();
-        bgMusic.setVolume(0.5f);
+        bgMusic.setVolume(this.game.MUSIC_VOLUME);
 
         /** Set Win Area */
-        winBounds = new Rectangle();
-        winBounds.setX(0);
-        winBounds.setY(Gdx.graphics.getHeight());
-        winBounds.setWidth(Gdx.graphics.getWidth());
-        winBounds.setHeight(-30);
+        goal = new Rectangle(2, Gdx.graphics.getHeight() - 2, Gdx.graphics.getWidth() - 2, -30);
 
         /** Configure tile map */
         streetMap = new TmxMapLoader().load("street.tmx");
@@ -144,18 +127,17 @@ public class GameScreen implements Screen {
      * Update is called here.
      */
     public void render(float f) {
-
-        if (!isPaused) {
-            this.update();
-        }
+        this.update();
 
         // Pause game logic
         if(pauseBtn.isPressed()) {
+            Gdx.app.log("PAUSE PRESSED", "0");
             if (isPaused) {
                 isPaused = false;
-                this.update();
+                gameState = GameState.PLAYING;
             } else {
                 isPaused = true;
+                gameState = GameState.PAUSED;
             }
         }
 
@@ -185,13 +167,6 @@ public class GameScreen implements Screen {
             }
         }
 
-//        ShapeRenderer wr = new ShapeRenderer();
-//        wr.begin(ShapeRenderer.ShapeType.Line);
-//        wr.setColor(Color.RED);
-//        wr.setAutoShapeType(true);
-//        wr.rect(winBounds.getX(), winBounds.getY(), winBounds.getWidth(), winBounds.getHeight());
-//        wr.end();
-
         /**
          * Debugging Feature: If the 'H' key is pressed during gameplay, hitboxes are drawn.
          * This is used for fine-tuning of hitboxes as the frog is an odd shape
@@ -207,6 +182,7 @@ public class GameScreen implements Screen {
                 }
             }
             sr.rect(this.frog.getBoundingRectangle().getX(), this.frog.getBoundingRectangle().getY(), this.frog.getBoundingRectangle().getWidth(), this.frog.getBoundingRectangle().getHeight());
+            sr.rect(this.goal.getX(), this.goal.getY(), this.goal.getWidth(), this.goal.getHeight());
             sr.end();
         }
 
@@ -243,17 +219,14 @@ public class GameScreen implements Screen {
     }
     @Override
     public void dispose() {
-
         streetMap.dispose();
         bgMusic.dispose();
         loseMusicPart1.dispose();
-        loseMusicPart2.dispose();
+//        loseMusicPart2.dispose();
     }
 
     @Override
-    public void resize(int width, int height) {
-//        viewport.update(width, height, true);
-    }
+    public void resize(int width, int height) { }
 
     @Override
     public void pause() {
@@ -284,6 +257,9 @@ public class GameScreen implements Screen {
             }
         }
 
+        Gdx.app.log("Goal co-ordinates", "X: " + new Float(goal.getX()).toString() + " Y: " + new Float(goal.getY()).toString() + " W: " + new Float(goal.getWidth()).toString() + " H: " + new Float(goal.getHeight()).toString());
+        Gdx.app.log("Frog co-ordinates", "X: " + new Float(this.frog.getBoundingRectangle().getX()).toString() + " Y: " + new Float(this.frog.getBoundingRectangle().getY()).toString() + " W: " + new Float(this.frog.getBoundingRectangle().getWidth()).toString() + " H: " + new Float(this.frog.getBoundingRectangle().getHeight()).toString());
+
         switch (gameState) {
             /**
              * Loop occurs while game is in the 'playing' state. This contains the code for the frog and cars moving
@@ -303,6 +279,17 @@ public class GameScreen implements Screen {
                         this.frog.setX(this.frog.getX() + playerToDestination.x);
                         this.frog.setY(this.frog.getY() + playerToDestination.y);
                     }
+                }
+
+                /**
+                 * If the player wins, switch to the win screen
+                 */
+                // win game if frog touches win bounds
+                if (this.frog.getBoundingRectangle().overlaps(goal)) {
+                    Gdx.app.log("GameState: ", "WIN");
+                    gameState = GameState.WIN;
+                    bgMusic.stop();
+                    bgMusic.dispose();
                 }
 
                 // Move cars
@@ -335,12 +322,12 @@ public class GameScreen implements Screen {
                             gameState = GameState.LOSE;
                             bgMusic.stop();
                             bgMusic.dispose();
-                            loseMusicPart1.setVolume(0.5f);
+                            loseMusicPart1.setVolume(this.game.MUSIC_VOLUME);
                             loseMusicPart1.setLooping(false);
                             loseMusicPart1.play();
                             if (loseMusicPart1.isPlaying()) {
                                 loseMusicPart2 = Gdx.audio.newMusic(Gdx.files.internal("lose2.wav"));
-                                loseMusicPart2.setVolume(0.5f);
+                                loseMusicPart2.setVolume(this.game.MUSIC_VOLUME);
                                 loseMusicPart2.setLooping(false);
                             }
                             loseMusicPart1.setOnCompletionListener(new Music.OnCompletionListener() {
@@ -351,16 +338,6 @@ public class GameScreen implements Screen {
                                                                        }
                                                                    }
                             );
-                        }
-                        /**
-                         * If the player wins, switch to the win screen
-                         */
-                        // win game if frog touches win bounds
-                        if (this.frog.getBoundingRectangle().overlaps(winBounds)) {
-                            Gdx.app.log("GameState: ", "WIN");
-                            gameState = GameState.WIN;
-                            bgMusic.stop();
-                            bgMusic.dispose();
                         }
                     }
 
@@ -397,8 +374,12 @@ public class GameScreen implements Screen {
              */
             case WIN:
                 bgMusic.dispose();
+                game.winScreen = new WinScreen(this.game);
                 game.setScreen(game.winScreen);
                 this.dispose();
+                break;
+
+            case PAUSED:
                 break;
         }
     }

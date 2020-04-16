@@ -14,6 +14,7 @@ public class FrogGame extends Game implements ApplicationListener {
 	public static MenuScreen menuScreen;
 	public static GameScreen gameScreen;
 	public static WinScreen winScreen;
+	public static final float MUSIC_VOLUME = 0.0f;
 	
 	@Override
 	public void create () {

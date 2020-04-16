@@ -40,10 +40,10 @@ public class MenuScreen implements Screen {
         titleMusic = Gdx.audio.newMusic(Gdx.files.internal("title.wav"));
         titleMusic.setLooping(false);
         titleMusic.play();
-        titleMusic.setVolume(0.5f);
+        titleMusic.setVolume(this.game.MUSIC_VOLUME);
         playHitMusic = Gdx.audio.newMusic(Gdx.files.internal("playhit.wav"));
         playHitMusic.setLooping(false);
-        playHitMusic.setVolume(0.5f);
+        playHitMusic.setVolume(this.game.MUSIC_VOLUME);
 
         Texture titleTexture = new Texture(Gdx.files.internal("title.png"));
         Image titleImage = new Image(titleTexture);
