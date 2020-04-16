@@ -1,25 +1,18 @@
 package com.newbj004.froggame;
 
-import com.badlogic.gdx.ApplicationListener;
-import com.badlogic.gdx.Game;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Screen;
 import com.badlogic.gdx.audio.Music;
-import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
-import com.badlogic.gdx.scenes.scene2d.ui.TextArea;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.utils.Align;
-
-import javax.swing.GroupLayout;
 
 public class MenuScreen implements Screen {
     private SpriteBatch batch;
@@ -37,6 +30,9 @@ public class MenuScreen implements Screen {
         this.game = game;
     }
 
+    /**
+     * Called when Menu Screen is constructed. Initialise all variables and configure menu layout.
+     */
     public void create() {
         batch = new SpriteBatch();
         skin = new Skin(Gdx.files.internal("flat-earth/skin/flat-earth-ui.json"));
@@ -51,8 +47,6 @@ public class MenuScreen implements Screen {
 
         Texture titleTexture = new Texture(Gdx.files.internal("title.png"));
         Image titleImage = new Image(titleTexture);
-        Texture subtitleTexture = new Texture(Gdx.files.internal("subtitle.png"));
-        Image subtitleImage = new Image(subtitleTexture);
 
         titleLabel = new Label("Funky Frog", skin);
         titleLabel.setWidth(150f);
@@ -84,6 +78,9 @@ public class MenuScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
     }
 
+    /**
+     * Draw menu and monitor if buttons are pressed
+     */
     public void render(float f) {
         Gdx.gl.glClearColor(1,1,1,1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);

@@ -69,41 +69,47 @@ public class GameScreen implements Screen {
     private boolean gameOver = false;
     private Rectangle winBounds;
     private boolean isPaused;
-    private Viewport viewport;
 
     // constructor to keep a reference to the main Game class
     public GameScreen(FrogGame game) {
         this.game = game;
     }
+
+    /**
+     * Called when Game Screen is constructed. Initialise all variables and put game into a new game state.
+     */
     public void create() {
+        /** Load music files and configure BGM */
         bgMusic = Gdx.audio.newMusic(Gdx.files.internal("level1.wav"));
         loseMusicPart1 = Gdx.audio.newMusic(Gdx.files.internal("lose1.wav"));
         bgMusic.setLooping(true);
         bgMusic.play();
         bgMusic.setVolume(0.5f);
 
-        // Set win area
+        /** Set Win Area */
         winBounds = new Rectangle();
         winBounds.setX(0);
         winBounds.setY(Gdx.graphics.getHeight());
         winBounds.setWidth(Gdx.graphics.getWidth());
         winBounds.setHeight(-30);
 
+        /** Configure tile map */
         streetMap = new TmxMapLoader().load("street.tmx");
         tiledMapRenderer = new OrthogonalTiledMapRenderer(streetMap);
 
+        /** Configure Camera */
         camera = new OrthographicCamera(800, 480);
         camera.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-//        viewport = new FitViewport(800, 480, camera);
 
-        // Create frog
+        /** Create Frog */
         this.frog = new Frog(280, 0);
-        // Create cars
+
+        /** Create Cars */
         this.cars = new Car[NUMBER_OF_LANES][CARS_PER_LANE];
         for (int i = 0; i < NUMBER_OF_LANES; ++i) {
             for (int j = 0; j < CARS_PER_LANE; ++j) {
-                // TODO: Check this
+                // Check to see if i is odd or even and if its even, make car travel in an easterly direction
                 if (i % 2 == 0) {
                     cars[i][j] = new Car(Travelling.EAST);
                 } else {
@@ -120,6 +126,7 @@ public class GameScreen implements Screen {
         skin = new Skin(Gdx.files.internal("flat-earth/skin/flat-earth-ui.json"));
         stage = new Stage();
 
+        /** Draw pause button */
         pauseBtn = new TextButton("| |", skin, "default");
         pauseBtn.setWidth(40f);
         pauseBtn.setHeight(40f);
@@ -129,10 +136,13 @@ public class GameScreen implements Screen {
         Gdx.input.setInputProcessor(stage);
         stage.draw();
         backToMenuBtn = new TextButton("Menu", skin, "default");
-//        this.newGame();
         isPaused = false;
     }
 
+    /**
+     * Render logic. Draw the frog with its animations and check the game state to see if any change from playing -> win / lose is necessary.
+     * Update is called here.
+     */
     public void render(float f) {
 
         if (!isPaused) {
@@ -149,7 +159,6 @@ public class GameScreen implements Screen {
             }
         }
 
-
         Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
@@ -161,10 +170,9 @@ public class GameScreen implements Screen {
 
         batch.setProjectionMatrix(camera.combined);
 
-
-
         stage.draw();
 
+        // draw frog differently if it has died
         if (!frog.isDead()) {
             frog.draw(batch, stateTime);
         } else {
@@ -184,7 +192,10 @@ public class GameScreen implements Screen {
 //        wr.rect(winBounds.getX(), winBounds.getY(), winBounds.getWidth(), winBounds.getHeight());
 //        wr.end();
 
-        // DEBUG: Draw Hitboxes
+        /**
+         * Debugging Feature: If the 'H' key is pressed during gameplay, hitboxes are drawn.
+         * This is used for fine-tuning of hitboxes as the frog is an odd shape
+         */
         if (showHitboxes) {
             ShapeRenderer sr = new ShapeRenderer();
             sr.begin(ShapeRenderer.ShapeType.Line);
@@ -199,6 +210,10 @@ public class GameScreen implements Screen {
             sr.end();
         }
 
+        /**
+         * If Game Over, draw game over screen where player can press anywhere on the screen to return to the main menu
+         * The lose game music should play and when the final chord is played this screen should be drawn
+         */
         if (gameOver) {
             BitmapFont font = new BitmapFont(Gdx.files.internal("good_neighbors.fnt"),
                     Gdx.files.internal("good_neighbors.png"), false);
@@ -255,6 +270,9 @@ public class GameScreen implements Screen {
 
     }
 
+    /**
+     * Called every frame from render method. This is where game logic is carried out and checked
+     */
     private void update() {
 
         // DEBUG: Toggle hitboxes if H is pressed
@@ -267,10 +285,12 @@ public class GameScreen implements Screen {
         }
 
         switch (gameState) {
+            /**
+             * Loop occurs while game is in the 'playing' state. This contains the code for the frog and cars moving
+             */
             case PLAYING:
                 // Move frog
                 if (Gdx.input.isTouched()) {
-
                     // y is reversed so have to getHeight - y touch
                     float maxDistanceThisFrame = this.frog.FROG_MOVEMENT_SPEED * Gdx.graphics.getDeltaTime();
                     Vector2 playerToDestination = new Vector2(Gdx.input.getX(), (Gdx.graphics.getHeight() - Gdx.input.getY())).sub(this.frog.getX(), this.frog.getY());
@@ -288,12 +308,10 @@ public class GameScreen implements Screen {
                 // Move cars
                 for (int i = 0; i < NUMBER_OF_LANES; ++i) {
                     for (int j = 0; j < CARS_PER_LANE; ++j) {
-                        // TODO: Check this
                         Car car = cars[i][j];
                         float carX = car.getX();
-                        //TODO Check this
                         if (car.getDirection() == Travelling.EAST) {
-                            carX = carX + (CAR_MIN_SPEED + i * CAR_SPEED_MOD) * Gdx.graphics.getDeltaTime();
+                            carX = carX + (CAR_MIN_SPEED + i * CAR_SPEED_MOD) * Gdx.graphics.getDeltaTime(); // delta time will keep cars moving at a steady rate instead of ridiculously quickly
                             // If car moves off screen, wrap around
                             if (carX >= Gdx.graphics.getWidth()) {
                                 carX = -car.getWidth();
@@ -307,6 +325,10 @@ public class GameScreen implements Screen {
                         }
                         car.setX(carX);
 
+                        /**
+                         * Check to see if the player has lost the game by checking if the frogs hitbox has collided with a cars
+                         * If it has, change the frogs sprite to it's death sprite, set the game state to 'lose' and play the lose music
+                         */
                         // lose game if car touches frog
                         if (this.frog.getBoundingRectangle().overlaps(car.getBoundingRectangle())) {
                             this.frog.killFrog();
@@ -330,6 +352,9 @@ public class GameScreen implements Screen {
                                                                    }
                             );
                         }
+                        /**
+                         * If the player wins, switch to the win screen
+                         */
                         // win game if frog touches win bounds
                         if (this.frog.getBoundingRectangle().overlaps(winBounds)) {
                             Gdx.app.log("GameState: ", "WIN");
@@ -341,6 +366,9 @@ public class GameScreen implements Screen {
 
                 }
                 break;
+            /**
+             * This loop contains the code for the lose condition. The cars should continue moving.
+             */
             case LOSE:
 //                Gdx.app.log("GameState: ", "LOSE");
                 for (int i = 0; i < NUMBER_OF_LANES; ++i) {
@@ -364,6 +392,9 @@ public class GameScreen implements Screen {
                     }
                 }
                 break;
+            /**
+             * This loop contains the code for the win condition.
+             */
             case WIN:
                 bgMusic.dispose();
                 game.setScreen(game.winScreen);
@@ -372,7 +403,9 @@ public class GameScreen implements Screen {
         }
     }
 
-
+    /**
+     * Initialise the game state for a new game, set the camera to the center and organise car and frog initial positions
+     */
     public void newGame() {
         gameOver = false;
         camera.position.x = Gdx.graphics.getWidth() / 2;
