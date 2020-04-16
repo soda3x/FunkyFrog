@@ -2,16 +2,12 @@ package com.newbj004.froggame;
 
 import com.badlogic.gdx.Game;
 import com.badlogic.gdx.ApplicationListener;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
 public class FrogGame extends Game implements ApplicationListener {
-	SpriteBatch batch;
-	Texture img;
 	public static MenuScreen menuScreen;
 	public static GameScreen gameScreen;
 	public static WinScreen winScreen;
-	public static final float MUSIC_VOLUME = 0.0f;
+	public static final float MUSIC_VOLUME = 0.5f;
 	
 	@Override
 	public void create () {
