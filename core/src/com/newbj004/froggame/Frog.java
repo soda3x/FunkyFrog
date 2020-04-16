@@ -60,7 +60,7 @@ public class Frog {
         TextureRegion[][] temp = TextureRegion.split(frogSheet, frogSheet.getWidth() / FRAME_COLS, frogSheet.getHeight() / FRAME_ROWS);
         Sprite s = new Sprite(temp[0][0]);
         // 14 and 2.5f are used to tune the hitbox
-        return new Rectangle(this.getX() + 20, this.getY() + 10, s.getWidth() / 3f, s.getHeight() / 1.8f);
+        return new Rectangle(this.getX() + 20, this.getY() + 22, s.getWidth() / 3f, s.getHeight() / 3f);
     }
 
     /**
@@ -94,6 +94,18 @@ public class Frog {
 
     public void killFrog() {
         this.dead = true;
+    }
+
+    public float getWidth() {
+        TextureRegion[][] temp = TextureRegion.split(frogSheet, frogSheet.getWidth() / FRAME_COLS, frogSheet.getHeight() / FRAME_ROWS);
+        Sprite s = new Sprite(temp[0][0]);
+        return s.getWidth();
+    }
+
+    public float getHeight() {
+        TextureRegion[][] temp = TextureRegion.split(frogSheet, frogSheet.getWidth() / FRAME_COLS, frogSheet.getHeight() / FRAME_ROWS);
+        Sprite s = new Sprite(temp[0][0]);
+        return s.getHeight();
     }
 
     /**

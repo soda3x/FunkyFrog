@@ -51,8 +51,8 @@ public class GameScreen implements Screen {
 
     private static final int CARS_PER_LANE = 3;
     private static final int NUMBER_OF_LANES = 8;
-    private static final int CAR_MIN_SPEED = 0;
-    private static final int CAR_SPEED_MOD = 0;
+    private static final int CAR_MIN_SPEED = 96;
+    private static final int CAR_SPEED_MOD = 12;
     private boolean showHitboxes = false;
     private boolean gameOver = false;
     private boolean isPaused;
@@ -74,7 +74,7 @@ public class GameScreen implements Screen {
         bgMusic.setVolume(this.game.MUSIC_VOLUME);
 
         /** Set Win Area */
-        goal = new Rectangle(2, Gdx.graphics.getHeight() - 2, Gdx.graphics.getWidth() - 2, -30);
+        goal = new Rectangle(2, Gdx.graphics.getHeight() - 24, Gdx.graphics.getWidth() - 2, -20);
 
         /** Configure tile map */
         streetMap = new TmxMapLoader().load("street.tmx");
@@ -257,9 +257,6 @@ public class GameScreen implements Screen {
             }
         }
 
-        Gdx.app.log("Goal co-ordinates", "X: " + new Float(goal.getX()).toString() + " Y: " + new Float(goal.getY()).toString() + " W: " + new Float(goal.getWidth()).toString() + " H: " + new Float(goal.getHeight()).toString());
-        Gdx.app.log("Frog co-ordinates", "X: " + new Float(this.frog.getBoundingRectangle().getX()).toString() + " Y: " + new Float(this.frog.getBoundingRectangle().getY()).toString() + " W: " + new Float(this.frog.getBoundingRectangle().getWidth()).toString() + " H: " + new Float(this.frog.getBoundingRectangle().getHeight()).toString());
-
         switch (gameState) {
             /**
              * Loop occurs while game is in the 'playing' state. This contains the code for the frog and cars moving
@@ -272,12 +269,22 @@ public class GameScreen implements Screen {
                     Vector2 playerToDestination = new Vector2(Gdx.input.getX(), (Gdx.graphics.getHeight() - Gdx.input.getY())).sub(this.frog.getX(), this.frog.getY());
 
                     if (playerToDestination.len() <= maxDistanceThisFrame) {
-                        this.frog.setX(Gdx.input.getX());
-                        this.frog.setY(Gdx.input.getY());
+                            this.frog.setX(Gdx.input.getX());
+                            this.frog.setY(Gdx.input.getY());
                     } else {
                         playerToDestination.nor().scl(maxDistanceThisFrame);
                         this.frog.setX(this.frog.getX() + playerToDestination.x);
                         this.frog.setY(this.frog.getY() + playerToDestination.y);
+                    }
+
+                    // Don't allow frog to move off screen x-axis
+                    if (this.frog.getX() > Gdx.graphics.getWidth()-this.frog.getWidth()) {
+                        this.frog.setX(Gdx.graphics.getWidth() - this.frog.getWidth());
+                    }
+
+                    // Don't allow frog to move off screen y-axis
+                    if (this.frog.getY() > Gdx.graphics.getHeight() - this.frog.getHeight()) {
+                        this.frog.setY(Gdx.graphics.getHeight() - this.frog.getHeight());
                     }
                 }
 
